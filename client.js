@@ -260,6 +260,10 @@ window.__ModuleLoader__.load({
         // 100 ms margin so the stop word itself never reaches the transcript.
         const cut = start === undefined ? all.length : Math.max(0, Math.round(start * SAMPLE_RATE) - FRAME_SAMPLES);
         const pcm = all.subarray(0, Math.min(cut, all.length));
+        send(socket.current, {
+          type: 'debug',
+          data: { event: 'stop', start, total: all.length, cut, pcm: pcm.length },
+        });
 
         send(socket.current, { type: 'mode', value: 'wake' });
         mode.current = 'wake';
@@ -318,6 +322,7 @@ window.__ModuleLoader__.load({
           return;
         }
         if (message.type !== 'hit') return;
+        send(socket.current, { type: 'debug', data: { event: 'hit', kind: message.kind, keyword: message.keyword } });
 
         if (message.kind === 'wake') {
           ding(880, 0.12);
