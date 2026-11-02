@@ -1,0 +1,10 @@
+node_modules/
+vendor/
+*.log
+.DS_Store
+Thumbs.db
+
+# Local test audio and downloaded models never belong in the repo.
+*.wav
+*.onnx
+spikes/out/

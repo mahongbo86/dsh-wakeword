@@ -1,0 +1,12 @@
+# Bundle layer: inserts the Host row and its default configuration.
+# The Client half is declared by package.json `dsh.client`.
+- insert:
+    - id: wakeword
+      name: dsh-wakeword
+      config:
+        wakeKeywords:
+          - 嘿小助手
+        stopKeyword: 说完了
+        cancelKeyword: 不用了
+        sendKeyword: ""
+        sendOnEnter: false

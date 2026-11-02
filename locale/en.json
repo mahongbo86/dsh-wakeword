@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Wake Word",
+    "description": "Start hands-free dictation by saying a wake word; stop with a stop word and the text lands in the draft."
+  }
+}

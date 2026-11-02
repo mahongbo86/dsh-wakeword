@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Wake word">
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#1f6feb"/>
+  <rect x="26" y="16" width="12" height="22" rx="6" fill="#ffffff"/>
+  <path d="M20 34a12 12 0 0 0 24 0" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+  <line x1="32" y1="46" x2="32" y2="52" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+  <path d="M14 24a18 18 0 0 0 0 20" fill="none" stroke="#9ecbff" stroke-width="3" stroke-linecap="round"/>
+  <path d="M50 24a18 18 0 0 1 0 20" fill="none" stroke="#9ecbff" stroke-width="3" stroke-linecap="round"/>
+</svg>
