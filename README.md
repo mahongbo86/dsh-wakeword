@@ -83,13 +83,26 @@ getUserMedia → AudioContext 16k
 
 - [x] KWS 验证：模型能识别中文唤醒词，结果带每个 token 的时间戳
 - [x] Host 半侧：KWS 会话、关键词生成、WebSocket 路由（15 个单测）
-- [x] Client 半侧：麦克风采集、状态机、收笔裁剪、转写落草稿（尚未在应用内验证）
+- [x] Client 半侧：麦克风采集、状态机、收笔裁剪、转写落草稿
 - [x] 接入 `speechToText`：复用语音 Bundle 已挂载的 `remote.speech`
-- [ ] 安装进 Desktop profile 并端到端验证：[docs/install.md](docs/install.md)
+- [x] Desktop profile 端到端跑通：唤醒 → 叮 → 口述 → 收笔 → 文字进草稿
+
+## 实现中踩到的四个坑
+
+1. **`conversation.input.activity` 是单占位槽**，语音输入插件已经占着。往那里注册会让它的激活失败，进而整个 web boot 中止。改用 `conversation.input.left`（list 槽，标准 props 同样带 `inputActions`）。
+2. **桌面端页面在 `dsh-app://app`**，`location.host` 是 `app`，拼不出 Host 地址。真实 origin 读 `__DSH_TRANSPORT__.streamBaseUrl`；跨域读接口还要自己带 CORS 头。
+3. **`remote.speech` 是按名字注册的子 Service**，不是 `ctx.remote` 的属性，要用 `ctx.get('remote.speech')` 取。
+4. **KWS 的时间戳相对「这一句关键词」**，不是相对整个流（前面垫 3 秒静音，结果仍是 0.08），不能拿它定位收笔词。改成按帧音量找最后一段说话。
+
+## 已知限制
+
+- 收笔词靠音量分段裁剪：说「说完了」之前停顿一下最准；没有停顿时退回「砍最后 1.2 秒」。
+- 单次口述上限 2 分钟（`speech` Remote 的 `maxDurationSeconds` 默认 120）。
+- 只支持单句口令，不做流式字幕。
 
 ## 安装
 
-暂未提供。开发阶段会直接以本地目录安装到 Desktop profile。
+见 [docs/install.md](docs/install.md)。开发阶段以 `link:` 方式装进 Desktop profile，改代码后重启即可。
 
 ## License
 
