@@ -25,11 +25,12 @@ test('resolveConfig falls back to the default route for a bad path', () => {
   assert.equal(resolveConfig({ modelDir: 'D:/m', path: '/custom' }).path, '/custom')
 })
 
-test('resolveConfig without modelDir needs DSH_HOME', () => {
+test('resolveConfig falls back to the user home when DSH_HOME is absent', () => {
   const previous = process.env.DSH_HOME
   delete process.env.DSH_HOME
   try {
-    assert.throws(() => resolveConfig({}), /config\.modelDir/)
+    const config = resolveConfig({})
+    assert.match(config.modelDir, /\.dsh\/models\/kws\/sherpa-onnx-kws-zipformer-wenetspeech-3\.3M-2024-01-01$/)
   } finally {
     if (previous !== undefined) process.env.DSH_HOME = previous
   }

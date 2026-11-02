@@ -17,40 +17,70 @@ import { KeywordSession } from './lib/kws.js'
 export const name = 'dsh-wakeword'
 export const inject = ['webServer']
 
-export function apply(ctx, rawConfig) {
-  const config = resolveConfig(rawConfig)
-  const tokensFile = path.join(config.modelDir, 'tokens.txt')
-  if (!fs.existsSync(tokensFile)) {
-    throw new Error(`dsh-wakeword: ${tokensFile} is missing; check config.modelDir`)
+/** Record the activation outcome where the next debugging session can read it. */
+function writeDiagnostic(cacheDir, record) {
+  try {
+    fs.mkdirSync(cacheDir, { recursive: true })
+    fs.writeFileSync(path.join(cacheDir, 'activation.json'), `${JSON.stringify(record, null, 2)}\n`)
+  } catch {
+    // diagnostics must never mask the real failure
   }
+}
 
-  const tokens = loadTokens(tokensFile)
-  const cacheDir = keywordCacheDir(process.env.DSH_HOME)
-  fs.mkdirSync(cacheDir, { recursive: true })
+export function apply(ctx, rawConfig) {
+  const home = process.env.DSH_HOME ?? `${process.env.USERPROFILE ?? '.'}/.dsh`
+  let cacheDir = keywordCacheDir(home)
 
-  const wakeFile = path.join(cacheDir, 'wake.txt')
-  const dictateFile = path.join(cacheDir, 'dictate.txt')
-  writeKeywordsFile(wakeFile, config.keywords.wake, tokens)
-  writeKeywordsFile(dictateFile, [...config.keywords.stop, ...config.keywords.cancel], tokens)
+  try {
+    const config = resolveConfig(rawConfig)
+    cacheDir = keywordCacheDir(home)
 
-  const bridge = createBridge({
-    logger: ctx.logger,
-    classify: createClassifier(config.keywords),
-    createSession: (mode) => new KeywordSession({
+    const tokensFile = path.join(config.modelDir, 'tokens.txt')
+    if (!fs.existsSync(tokensFile)) {
+      throw new Error(`model directory ${config.modelDir} has no tokens.txt`)
+    }
+
+    const tokens = loadTokens(tokensFile)
+    fs.mkdirSync(cacheDir, { recursive: true })
+
+    const wakeFile = path.join(cacheDir, 'wake.txt')
+    const dictateFile = path.join(cacheDir, 'dictate.txt')
+    writeKeywordsFile(wakeFile, config.keywords.wake, tokens)
+    writeKeywordsFile(dictateFile, [...config.keywords.stop, ...config.keywords.cancel], tokens)
+
+    const bridge = createBridge({
+      logger: ctx.logger,
+      classify: createClassifier(config.keywords),
+      createSession: (mode) => new KeywordSession({
+        modelDir: config.modelDir,
+        keywordsFile: mode === 'wake' ? wakeFile : dictateFile,
+        threshold: config.threshold,
+        numThreads: config.numThreads,
+      }),
+    })
+
+    const disposeRoute = ctx.webServer.registerUpgrade({
+      path: config.path,
+      handler: bridge.handleUpgrade,
+    })
+
+    ctx.effect(() => () => {
+      disposeRoute()
+      bridge.close()
+    })
+
+    writeDiagnostic(cacheDir, {
+      at: new Date().toISOString(),
+      ok: true,
+      path: config.path,
       modelDir: config.modelDir,
-      keywordsFile: mode === 'wake' ? wakeFile : dictateFile,
-      threshold: config.threshold,
-      numThreads: config.numThreads,
-    }),
-  })
-
-  const disposeRoute = ctx.webServer.registerUpgrade({
-    path: config.path,
-    handler: bridge.handleUpgrade,
-  })
-
-  ctx.effect(() => () => {
-    disposeRoute()
-    bridge.close()
-  })
+      keywords: config.keywords,
+    })
+    ctx.logger?.info?.(`dsh-wakeword: listening on ${config.path}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    writeDiagnostic(cacheDir, { at: new Date().toISOString(), ok: false, error: message })
+    ctx.logger?.error?.(error)
+    throw error
+  }
 }
