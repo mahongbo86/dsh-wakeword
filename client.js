@@ -160,6 +160,10 @@ window.__ModuleLoader__.load({
       const chunks = React.useRef([]);
       const total = React.useRef(0);
       const alive = React.useRef(true);
+      // One context created inside the click that arms the control: a context
+      // made later, when a keyword fires, is outside the user gesture and may
+      // stay suspended (so the cue stays silent).
+      const cue = React.useRef(null);
 
       React.useEffect(() => () => {
         alive.current = false;
@@ -193,6 +197,10 @@ window.__ModuleLoader__.load({
           socket.current.close();
           socket.current = null;
         }
+        if (cue.current) {
+          cue.current.close().catch(() => {});
+          cue.current = null;
+        }
       }
 
       function send(ws, message) {
@@ -200,18 +208,21 @@ window.__ModuleLoader__.load({
       }
 
       function ding(frequency, duration) {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        const context = new AudioCtx();
+        const context = cue.current;
+        if (!context) return;
+        if (context.state === 'suspended') context.resume().catch(() => {});
         const oscillator = context.createOscillator();
         const gain = context.createGain();
         oscillator.frequency.value = frequency;
-        gain.gain.value = 0.08;
+        gain.gain.value = 0.12;
         oscillator.connect(gain);
         gain.connect(context.destination);
         oscillator.start();
         oscillator.stop(context.currentTime + duration);
-        oscillator.onended = () => context.close().catch(() => {});
+        oscillator.onended = () => {
+          oscillator.disconnect();
+          gain.disconnect();
+        };
       }
 
       function resetTake() {
@@ -307,6 +318,7 @@ window.__ModuleLoader__.load({
           resetTake();
           recording.current = true;
           send(socket.current, { type: 'mode', value: 'dictate' });
+          setMessage('在听，说「说完了」结束');
           setPhase('recording');
           return;
         }
@@ -315,11 +327,13 @@ window.__ModuleLoader__.load({
           resetTake();
           send(socket.current, { type: 'mode', value: 'wake' });
           mode.current = 'wake';
+          setMessage('已取消');
           setPhase('listening');
           return;
         }
         if (message.kind === 'stop') {
           ding(660, 0.1);
+          setMessage('转写中…');
           finishTake(message);
         }
       }
@@ -328,6 +342,12 @@ window.__ModuleLoader__.load({
         setMessage('');
         setPhase('starting');
         try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            cue.current = new AudioCtx();
+            if (cue.current.state === 'suspended') await cue.current.resume().catch(() => {});
+          }
+
           mic.current = new MicCapture(onFrame);
           await mic.current.start();
 
