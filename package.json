@@ -13,12 +13,16 @@
   "files": [
     "index.js",
     "client.js",
+    "lib/*.js",
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
     "README.md",
     "LICENSE"
   ],
+  "scripts": {
+    "test": "node --test"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -38,5 +42,8 @@
     "keyword-spotting",
     "voice"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "sherpa-onnx-node": "^1.13.8"
+  }
 }

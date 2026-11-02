@@ -32,6 +32,22 @@ DSH 已经带语音输入，但要先手动点输入框旁的麦克风按钮。�
 - 语音输入 Bundle：提供 `speechToText` 服务与本地 SenseVoice 转写
 - `sherpa-onnx` 的 KWS 模型（中文建议 `sherpa-onnx-kws-zipformer-wenetspeech-3.3M`）
 
+## 架构
+
+```text
+浏览器（client.js）                      Host（index.js）
+─────────────────────                   ─────────────────────
+getUserMedia → AudioContext 16k
+  → 每 100 ms 一帧 Float32 ──WebSocket──▶  KeywordSession.push(frame)
+                                         （sherpa-onnx KeywordSpotter）
+  ◀──────────── wake / stop 事件 ─────────┘
+  → 录音缓冲 + 收笔裁剪
+  → 调 speechToText 转写 ───────────────▶ SenseVoice
+  → 写入草稿（conversation.input）
+```
+
+音频走 Host 插件自己注册的 WebSocket 升级路由（`ctx.webServer.registerUpgrade`），只监听环回地址。转写复用现有语音输入 Bundle 的 `speechToText` 服务。
+
 ## 路线
 
 - [x] KWS 验证：模型能识别中文唤醒词，结果带每个 token 的时间戳
