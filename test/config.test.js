@@ -12,6 +12,7 @@ test('resolveConfig fills defaults around an explicit model directory', () => {
     wake: ['嘿小助手'],
     stop: ['说完了'],
     cancel: ['不用了'],
+    send: ['发送'],
   })
 })
 

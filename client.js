@@ -161,6 +161,8 @@ window.__ModuleLoader__.load({
       const levels = React.useRef([]);
       const total = React.useRef(0);
       const alive = React.useRef(true);
+      const sendWords = React.useRef([]);
+      const confirmTimer = React.useRef(null);
       // One context created inside the click that arms the control: a context
       // made later, when a keyword fires, is outside the user gesture and may
       // stay suspended (so the cue stays silent).
@@ -191,6 +193,7 @@ window.__ModuleLoader__.load({
         recording.current = false;
         chunks.current = [];
         total.current = 0;
+        clearTimeout(confirmTimer.current);
         if (mic.current) mic.current.stop().catch(() => {});
         mic.current = null;
         if (socket.current) {
@@ -301,7 +304,22 @@ window.__ModuleLoader__.load({
             setMessage('没识别到语音');
           } else if (inputActions && inputActions.insertText) {
             inputActions.insertText(text, inputActions.captureInsertion());
-            setMessage('');
+            if (sendWords.current.length > 0) {
+              send(socket.current, { type: 'mode', value: 'confirm' });
+              mode.current = 'confirm';
+              setPhase('confirming');
+              setMessage('已插入。说「发送」提交，或「不用了」取消');
+              clearTimeout(confirmTimer.current);
+              confirmTimer.current = setTimeout(() => {
+                if (!alive.current || mode.current !== 'confirm') return;
+                send(socket.current, { type: 'mode', value: 'wake' });
+                mode.current = 'wake';
+                setPhase('listening');
+                setMessage('');
+              }, 6000);
+            } else {
+              setMessage('');
+            }
           } else {
             setMessage('无法写入输入框');
           }
@@ -323,6 +341,7 @@ window.__ModuleLoader__.load({
           if (Array.isArray(message.wakeWords) && message.wakeWords.length > 0) {
             setWakeWord(String(message.wakeWords[0]));
           }
+          sendWords.current = Array.isArray(message.sendWords) ? message.sendWords : [];
           setPhase('listening');
           return;
         }
@@ -343,8 +362,23 @@ window.__ModuleLoader__.load({
           setPhase('recording');
           return;
         }
+        if (message.kind === 'send') {
+          ding(990, 0.12);
+          clearTimeout(confirmTimer.current);
+          mode.current = 'wake';
+          send(socket.current, { type: 'mode', value: 'wake' });
+          if (inputActions && typeof inputActions.submit === 'function') {
+            inputActions.submit();
+            setMessage('已发送');
+          } else {
+            setMessage('无法提交');
+          }
+          setPhase('listening');
+          return;
+        }
         if (message.kind === 'cancel') {
           ding(440, 0.12);
+          clearTimeout(confirmTimer.current);
           resetTake();
           send(socket.current, { type: 'mode', value: 'wake' });
           mode.current = 'wake';
@@ -400,7 +434,13 @@ window.__ModuleLoader__.load({
       }
 
       const active = phase !== 'idle';
-      const label = phase === 'recording' ? '正在听写' : phase === 'transcribing' ? '转写中' : wakeWord;
+      const label = phase === 'recording'
+        ? '正在听写'
+        : phase === 'confirming'
+          ? '说「发送」'
+          : phase === 'transcribing'
+            ? '转写中'
+            : wakeWord;
 
       return h(
         'div',

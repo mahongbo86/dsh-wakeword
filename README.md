@@ -55,11 +55,11 @@ getUserMedia → AudioContext 16k
 | 方向 | 消息 | 说明 |
 | --- | --- | --- |
 | 浏览器 → Host | `{"type":"hello"}` | 建连后握手，Host 回 `ready` |
-| 浏览器 → Host | `{"type":"mode","value":"wake"\|"dictate"}` | 切换关键词集合 |
+| 浏览器 → Host | `{"type":"mode","value":"wake"\|"dictate"\|"confirm"}` | 切换关键词集合 |
 | 浏览器 → Host | `{"type":"flush"}` | 补尾巴静音，冲出发末尾的关键词 |
 | 浏览器 → Host | 二进制 Float32 帧 | 音频 |
-| Host → 浏览器 | `{"type":"ready","mode","wakeWords"}` | 就绪；`wakeWords` 供控件显示唤醒词 |
-| Host → 浏览器 | `{"type":"hit","mode","kind","keyword","start","timestamps"}` | 命中关键词 |
+| Host → 浏览器 | `{"type":"ready","mode","wakeWords","sendWords"}` | 就绪；供控件显示唤醒词 |
+| Host → 浏览器 | `{"type":"hit","mode","kind","keyword","start","timestamps"}` | `kind`: wake / stop / cancel / send |
 | Host → 浏览器 | `{"type":"error","message"}` | 协议或推理错误 |
 
 ### 配置
@@ -75,9 +75,12 @@ getUserMedia → AudioContext 16k
       wake: [嘿小助手]
       stop: [说完了]
       cancel: [不用了]
+      send: [发送]      # 留空数组 = 不做发送确认，只插入草稿
 ```
 
 `modelDir` 省略时用 `$DSH_HOME/models/kws/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01`。关键词会按模型的 `tokens.txt` 转成拼音 token；模型拼不出来的字会直接报错并指出是哪个字。
+
+收笔之后会进入 6 秒的确认窗口：说 `send` 里的词提交草稿，说 `cancel` 里的词取消，超时则保持草稿不动。
 
 ## 路线
 

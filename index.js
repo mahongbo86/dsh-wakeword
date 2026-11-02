@@ -55,18 +55,21 @@ export function apply(ctx, rawConfig) {
 
     const wakeFile = path.join(cacheDir, 'wake.txt')
     const dictateFile = path.join(cacheDir, 'dictate.txt')
+    const confirmFile = path.join(cacheDir, 'confirm.txt')
     writeKeywordsFile(wakeFile, config.keywords.wake, tokens)
     writeKeywordsFile(dictateFile, [...config.keywords.stop, ...config.keywords.cancel], tokens)
+    writeKeywordsFile(confirmFile, [...config.keywords.send, ...config.keywords.cancel], tokens)
 
     const stats = {}
     const bridge = createBridge({
       logger: ctx.logger,
       classify: createClassifier(config.keywords),
       wakeWords: config.keywords.wake,
+      sendWords: config.keywords.send,
       stats,
       createSession: (mode) => new KeywordSession({
         modelDir: config.modelDir,
-        keywordsFile: mode === 'wake' ? wakeFile : dictateFile,
+        keywordsFile: mode === 'wake' ? wakeFile : mode === 'confirm' ? confirmFile : dictateFile,
         threshold: config.threshold,
         numThreads: config.numThreads,
       }),
