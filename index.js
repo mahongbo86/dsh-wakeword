@@ -87,6 +87,7 @@ export function apply(ctx, rawConfig) {
       keywords: config.keywords,
       serverPort: ctx.webServer.port,
       serverHost: ctx.webServer.host,
+      hasRegisterUpgrade: typeof ctx.webServer.registerUpgrade,
     })
     ctx.logger?.info?.(`dsh-wakeword: listening on ${config.path}`)
   } catch (error) {
