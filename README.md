@@ -81,10 +81,10 @@ getUserMedia → AudioContext 16k
 ## 路线
 
 - [x] KWS 验证：模型能识别中文唤醒词，结果带每个 token 的时间戳
-- [x] Host 半侧：KWS 会话、关键词生成、WebSocket 路由（13 个单测）
-- [ ] Client 半侧：麦克风采集、状态机、收笔裁剪
-- [ ] 接入 `speechToText`，转写写入草稿
-- [ ] 唤醒词可配置（含 token 校验与试听）
+- [x] Host 半侧：KWS 会话、关键词生成、WebSocket 路由（15 个单测）
+- [x] Client 半侧：麦克风采集、状态机、收笔裁剪、转写落草稿（尚未在应用内验证）
+- [x] 接入 `speechToText`：复用语音 Bundle 已挂载的 `remote.speech`
+- [ ] 安装进 Desktop profile 并端到端验证：[docs/install.md](docs/install.md)
 
 ## 安装
 

@@ -9,6 +9,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { createBridge } from './lib/bridge.js'
+import { createClassifier } from './lib/classify.js'
 import { keywordCacheDir, resolveConfig } from './lib/config.js'
 import { loadTokens, writeKeywordsFile } from './lib/keywords.js'
 import { KeywordSession } from './lib/kws.js'
@@ -34,6 +35,7 @@ export function apply(ctx, rawConfig) {
 
   const bridge = createBridge({
     logger: ctx.logger,
+    classify: createClassifier(config.keywords),
     createSession: (mode) => new KeywordSession({
       modelDir: config.modelDir,
       keywordsFile: mode === 'wake' ? wakeFile : dictateFile,
