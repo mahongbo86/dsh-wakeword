@@ -158,6 +158,7 @@ window.__ModuleLoader__.load({
       const mode = React.useRef('wake');
       const recording = React.useRef(false);
       const chunks = React.useRef([]);
+      const levels = React.useRef([]);
       const total = React.useRef(0);
       const alive = React.useRef(true);
       // One context created inside the click that arms the control: a context
@@ -228,6 +229,7 @@ window.__ModuleLoader__.load({
       function resetTake() {
         recording.current = false;
         chunks.current = [];
+        levels.current = [];
         total.current = 0;
       }
 
@@ -237,6 +239,9 @@ window.__ModuleLoader__.load({
         if (recording.current) {
           chunks.current.push(frame);
           total.current += frame.length;
+          let sum = 0;
+          for (let i = 0; i < frame.length; i += 1) sum += frame[i] * frame[i];
+          levels.current.push(Math.sqrt(sum / frame.length));
         }
       }
 
@@ -254,15 +259,25 @@ window.__ModuleLoader__.load({
         recording.current = false;
         setPhase('transcribing');
 
-        const start = Array.isArray(hit.timestamps) && hit.timestamps.length > 0 ? hit.timestamps[0] : undefined;
         const all = samples();
-        // timestamps are seconds from the start of the dictation stream; keep a
-        // 100 ms margin so the stop word itself never reaches the transcript.
-        const cut = start === undefined ? all.length : Math.max(0, Math.round(start * SAMPLE_RATE) - FRAME_SAMPLES);
+        // Keyword timestamps are relative to the detected phrase, not to the
+        // stream (verified: 3 s of leading silence still reports 0.08), so
+        // locate the final speech run by level instead: the stop word is the
+        // last voiced stretch, and the text ends where that stretch begins.
+        const lv = levels.current;
+        const peak = lv.length > 0 ? Math.max(...lv) : 0;
+        const threshold = Math.max(0.002, peak * 0.12);
+        let end = lv.length - 1;
+        while (end >= 0 && lv[end] < threshold) end -= 1;
+        let startFrame = end;
+        while (startFrame >= 0 && lv[startFrame] >= threshold) startFrame -= 1;
+        const runStart = Math.max(0, (startFrame + 1) * FRAME_SAMPLES - FRAME_SAMPLES * 2);
+        const fallback = Math.max(0, all.length - SAMPLE_RATE * 1.2);
+        const cut = runStart > all.length * 0.3 ? runStart : fallback;
         const pcm = all.subarray(0, Math.min(cut, all.length));
         send(socket.current, {
           type: 'debug',
-          data: { event: 'stop', start, total: all.length, cut, pcm: pcm.length },
+          data: { event: 'stop', total: all.length, peak, threshold, runStart, cut, pcm: pcm.length },
         });
 
         send(socket.current, { type: 'mode', value: 'wake' });
