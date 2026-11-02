@@ -273,8 +273,15 @@ window.__ModuleLoader__.load({
 
         try {
           const remote = getRemote();
-          if (!remote || !remote.speech) throw new Error('语音输入插件未启用');
-          const result = await remote.speech.transcribe({ audioBase64: toBase64(encodeWav(pcm)) });
+          if (!remote) throw new Error('无法访问 Remote 服务');
+          let speech;
+          try {
+            speech = remote.speech;
+          } catch {
+            speech = undefined;
+          }
+          if (!speech || typeof speech.transcribe !== 'function') throw new Error('语音输入插件未启用');
+          const result = await speech.transcribe({ audioBase64: toBase64(encodeWav(pcm)) });
           if (!result || result.ok !== true) throw new Error(result && result.error ? String(result.error.message ?? result.error) : '转写失败');
           const text = result.value.text.trim();
           if (text === '') {
@@ -421,8 +428,10 @@ window.__ModuleLoader__.load({
     }
 
     return {
-      inject: ['slots'],
+      inject: ['slots', 'remote'],
       apply(ctx) {
+        // Cordis only exposes services a plugin injected; without 'remote' in
+        // the list above this getter silently degrades to undefined.
         getRemote = () => {
           try {
             return ctx.remote;
