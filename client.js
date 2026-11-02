@@ -145,7 +145,7 @@ window.__ModuleLoader__.load({
 
     // Resolved in apply(); kept in factory scope so the component does not
     // depend on a slot-injected prop.
-    let getRemote = () => undefined;
+    let getSpeech = () => undefined;
 
     function WakewordButton(props) {
       const { inputActions } = props;
@@ -291,15 +291,9 @@ window.__ModuleLoader__.load({
         }
 
         try {
-          const remote = getRemote();
-          if (!remote) throw new Error('无法访问 Remote 服务');
-          let speech;
-          try {
-            speech = remote.speech;
-          } catch {
-            speech = undefined;
-          }
-          if (!speech || typeof speech.transcribe !== 'function') throw new Error('语音输入插件未启用');
+          const speech = getSpeech();
+          if (!speech) throw new Error('无法访问 Remote 服务');
+          if (typeof speech.transcribe !== 'function') throw new Error('语音输入插件未启用');
           const result = await speech.transcribe({ audioBase64: toBase64(encodeWav(pcm)) });
           if (!result || result.ok !== true) throw new Error(result && result.error ? String(result.error.message ?? result.error) : '转写失败');
           const text = result.value.text.trim();
@@ -450,11 +444,18 @@ window.__ModuleLoader__.load({
     return {
       inject: ['slots', 'remote'],
       apply(ctx) {
-        // Cordis only exposes services a plugin injected; without 'remote' in
-        // the list above this getter silently degrades to undefined.
-        getRemote = () => {
+        // `remote.speech` is a child Service, not a plain property of the
+        // remote facade: resolve it by name like the shell does with
+        // ctx.get('conversation'). Fall back to the property for other builds.
+        getSpeech = () => {
           try {
-            return ctx.remote;
+            const byName = ctx.get?.('remote.speech');
+            if (byName) return byName;
+          } catch {
+            // fall through
+          }
+          try {
+            return ctx.remote?.speech;
           } catch {
             return undefined;
           }
