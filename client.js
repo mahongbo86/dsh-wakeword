@@ -136,6 +136,7 @@ window.__ModuleLoader__.load({
       const { inputActions } = props;
       const [phase, setPhase] = React.useState('idle');
       const [message, setMessage] = React.useState('');
+      const [wakeWord, setWakeWord] = React.useState('唤醒词');
 
       const mic = React.useRef(null);
       const socket = React.useRef(null);
@@ -257,6 +258,9 @@ window.__ModuleLoader__.load({
           return;
         }
         if (message.type === 'ready') {
+          if (Array.isArray(message.wakeWords) && message.wakeWords.length > 0) {
+            setWakeWord(String(message.wakeWords[0]));
+          }
           setPhase('listening');
           return;
         }
@@ -323,7 +327,7 @@ window.__ModuleLoader__.load({
       }
 
       const active = phase !== 'idle';
-      const label = phase === 'idle' ? '唤醒词' : phase === 'recording' ? '正在听写' : phase === 'transcribing' ? '转写中' : '监听中';
+      const label = phase === 'recording' ? '正在听写' : phase === 'transcribing' ? '转写中' : wakeWord;
 
       return h(
         'div',

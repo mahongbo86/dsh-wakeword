@@ -58,7 +58,8 @@ getUserMedia → AudioContext 16k
 | 浏览器 → Host | `{"type":"mode","value":"wake"\|"dictate"}` | 切换关键词集合 |
 | 浏览器 → Host | `{"type":"flush"}` | 补尾巴静音，冲出发末尾的关键词 |
 | 浏览器 → Host | 二进制 Float32 帧 | 音频 |
-| Host → 浏览器 | `{"type":"hit","mode","keyword","start","timestamps"}` | 命中关键词 |
+| Host → 浏览器 | `{"type":"ready","mode","wakeWords"}` | 就绪；`wakeWords` 供控件显示唤醒词 |
+| Host → 浏览器 | `{"type":"hit","mode","kind","keyword","start","timestamps"}` | 命中关键词 |
 | Host → 浏览器 | `{"type":"error","message"}` | 协议或推理错误 |
 
 ### 配置

@@ -61,6 +61,7 @@ export function apply(ctx, rawConfig) {
     const bridge = createBridge({
       logger: ctx.logger,
       classify: createClassifier(config.keywords),
+      wakeWords: config.keywords.wake,
       createSession: (mode) => new KeywordSession({
         modelDir: config.modelDir,
         keywordsFile: mode === 'wake' ? wakeFile : dictateFile,
