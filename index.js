@@ -17,6 +17,16 @@ import { KeywordSession } from './lib/kws.js'
 export const name = 'dsh-wakeword'
 export const inject = ['webServer']
 
+// Import-time marker: distinguishes "bundle never loaded" from "apply failed"
+// when the next activation is diagnosed from disk.
+try {
+  const markerDir = `${process.env.DSH_HOME ?? `${process.env.USERPROFILE ?? '.'}/.dsh`}/cache/dsh-wakeword`
+  fs.mkdirSync(markerDir, { recursive: true })
+  fs.writeFileSync(`${markerDir}/import.json`, `${JSON.stringify({ at: new Date().toISOString() })}\n`)
+} catch {
+  // diagnostics only
+}
+
 /** Record the activation outcome where the next debugging session can read it. */
 function writeDiagnostic(cacheDir, record) {
   try {
