@@ -58,10 +58,12 @@ export function apply(ctx, rawConfig) {
     writeKeywordsFile(wakeFile, config.keywords.wake, tokens)
     writeKeywordsFile(dictateFile, [...config.keywords.stop, ...config.keywords.cancel], tokens)
 
+    const stats = {}
     const bridge = createBridge({
       logger: ctx.logger,
       classify: createClassifier(config.keywords),
       wakeWords: config.keywords.wake,
+      stats,
       createSession: (mode) => new KeywordSession({
         modelDir: config.modelDir,
         keywordsFile: mode === 'wake' ? wakeFile : dictateFile,
@@ -76,7 +78,8 @@ export function apply(ctx, rawConfig) {
     })
 
     // The control shows the wake word before it ever connects, so the words
-    // are readable over plain HTTP as well.
+    // are readable over plain HTTP as well. The page runs on dsh-app://app, so
+    // these cross-origin reads need CORS.
     const disposeConfig = ctx.webServer.register({
       kind: 'exact',
       path: `${config.path}/config`,
@@ -84,6 +87,7 @@ export function apply(ctx, rawConfig) {
         response.writeHead(200, {
           'content-type': 'application/json; charset=utf-8',
           'cache-control': 'no-store',
+          'access-control-allow-origin': '*',
         })
         response.end(JSON.stringify({
           wakeWords: config.keywords.wake,
@@ -93,9 +97,23 @@ export function apply(ctx, rawConfig) {
       },
     })
 
+    const disposeStats = ctx.webServer.register({
+      kind: 'exact',
+      path: `${config.path}/stats`,
+      handler: (request, response) => {
+        response.writeHead(200, {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'no-store',
+          'access-control-allow-origin': '*',
+        })
+        response.end(JSON.stringify({ ...stats, threshold: config.threshold, keywords: config.keywords }))
+      },
+    })
+
     ctx.effect(() => () => {
       disposeRoute()
       disposeConfig()
+      disposeStats()
       bridge.close()
     })
 
