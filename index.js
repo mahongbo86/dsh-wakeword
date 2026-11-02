@@ -85,6 +85,8 @@ export function apply(ctx, rawConfig) {
       path: config.path,
       modelDir: config.modelDir,
       keywords: config.keywords,
+      serverPort: ctx.webServer.port,
+      serverHost: ctx.webServer.host,
     })
     ctx.logger?.info?.(`dsh-wakeword: listening on ${config.path}`)
   } catch (error) {
