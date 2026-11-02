@@ -75,8 +75,27 @@ export function apply(ctx, rawConfig) {
       handler: bridge.handleUpgrade,
     })
 
+    // The control shows the wake word before it ever connects, so the words
+    // are readable over plain HTTP as well.
+    const disposeConfig = ctx.webServer.register({
+      kind: 'exact',
+      path: `${config.path}/config`,
+      handler: (request, response) => {
+        response.writeHead(200, {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'no-store',
+        })
+        response.end(JSON.stringify({
+          wakeWords: config.keywords.wake,
+          stop: config.keywords.stop,
+          cancel: config.keywords.cancel,
+        }))
+      },
+    })
+
     ctx.effect(() => () => {
       disposeRoute()
+      disposeConfig()
       bridge.close()
     })
 

@@ -151,6 +151,22 @@ window.__ModuleLoader__.load({
         teardown();
       }, []);
 
+      // Read the configured wake word before the first connection so the label
+      // is right at rest, not only after arming.
+      React.useEffect(() => {
+        let cancelled = false;
+        fetch('/wakeword/config', { cache: 'no-store' })
+          .then((response) => (response.ok ? response.json() : undefined))
+          .then((data) => {
+            if (cancelled || !data || !Array.isArray(data.wakeWords) || data.wakeWords.length === 0) return;
+            setWakeWord(String(data.wakeWords[0]));
+          })
+          .catch(() => {});
+        return () => {
+          cancelled = true;
+        };
+      }, []);
+
       function teardown() {
         recording.current = false;
         chunks.current = [];
