@@ -4,9 +4,15 @@
     - id: wakeword
       name: dsh-wakeword
       config:
-        wakeKeywords:
-          - 嘿小助手
-        stopKeyword: 说完了
-        cancelKeyword: 不用了
-        sendKeyword: ""
-        sendOnEnter: false
+        # Absolute path to a sherpa-onnx KWS model directory. Omit to use
+        # $DSH_HOME/models/kws/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01
+        # modelDir: D:/src/_models/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01
+        threshold: 0.25
+        numThreads: 1
+        keywords:
+          wake:
+            - 嘿小助手
+          stop:
+            - 说完了
+          cancel:
+            - 不用了

@@ -48,11 +48,41 @@ getUserMedia → AudioContext 16k
 
 音频走 Host 插件自己注册的 WebSocket 升级路由（`ctx.webServer.registerUpgrade`），只监听环回地址。转写复用现有语音输入 Bundle 的 `speechToText` 服务。
 
+### 协议
+
+控制帧是 JSON 文本，音频是二进制帧（小端 Float32，16 kHz 单声道，每帧约 100 ms）。
+
+| 方向 | 消息 | 说明 |
+| --- | --- | --- |
+| 浏览器 → Host | `{"type":"hello"}` | 建连后握手，Host 回 `ready` |
+| 浏览器 → Host | `{"type":"mode","value":"wake"\|"dictate"}` | 切换关键词集合 |
+| 浏览器 → Host | `{"type":"flush"}` | 补尾巴静音，冲出发末尾的关键词 |
+| 浏览器 → Host | 二进制 Float32 帧 | 音频 |
+| Host → 浏览器 | `{"type":"hit","mode","keyword","start","timestamps"}` | 命中关键词 |
+| Host → 浏览器 | `{"type":"error","message"}` | 协议或推理错误 |
+
+### 配置
+
+```yaml
+- id: wakeword
+  config:
+    modelDir: D:/models/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01
+    path: /wakeword
+    threshold: 0.25
+    numThreads: 1
+    keywords:
+      wake: [嘿小助手]
+      stop: [说完了]
+      cancel: [不用了]
+```
+
+`modelDir` 省略时用 `$DSH_HOME/models/kws/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01`。关键词会按模型的 `tokens.txt` 转成拼音 token；模型拼不出来的字会直接报错并指出是哪个字。
+
 ## 路线
 
 - [x] KWS 验证：模型能识别中文唤醒词，结果带每个 token 的时间戳
-- [ ] Host 半侧：KWS 会话、模型准备与校验
-- [ ] Client 半侧：麦克风、状态机、收笔裁剪
+- [x] Host 半侧：KWS 会话、关键词生成、WebSocket 路由（13 个单测）
+- [ ] Client 半侧：麦克风采集、状态机、收笔裁剪
 - [ ] 接入 `speechToText`，转写写入草稿
 - [ ] 唤醒词可配置（含 token 校验与试听）
 
