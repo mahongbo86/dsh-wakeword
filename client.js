@@ -128,8 +128,12 @@ window.__ModuleLoader__.load({
 
     // ------------------------------------------------------------ component
 
+    // Resolved in apply(); kept in factory scope so the component does not
+    // depend on a slot-injected prop.
+    let getRemote = () => undefined;
+
     function WakewordButton(props) {
-      const { inputActions, getRemote } = props;
+      const { inputActions } = props;
       const [phase, setPhase] = React.useState('idle');
       const [message, setMessage] = React.useState('');
 
@@ -363,19 +367,29 @@ window.__ModuleLoader__.load({
     return {
       inject: ['slots'],
       apply(ctx) {
-        ctx.slots.inject('conversation.input.activity', () => ctx.slots.register({
-          name: 'conversation.input.activity',
-          id: 'dsh-wakeword',
-          inject: () => ({
-            getRemote: () => {
-              try {
-                return ctx.remote;
-              } catch {
-                return undefined;
-              }
-            },
-          }),
-        }, WakewordButton));
+        getRemote = () => {
+          try {
+            return ctx.remote;
+          } catch {
+            return undefined;
+          }
+        };
+        // conversation.input.left is a list slot, so this never displaces the
+        // shipped single-occupant controls (input.activity hosts exactly one,
+        // and the voice-input plugin owns it). Failure here must never fail the
+        // whole web boot: report and keep the rest of the app alive.
+        try {
+          const pending = ctx.slots.inject('conversation.input.left', () => ctx.slots.register({
+            name: 'conversation.input.left',
+            id: 'dsh-wakeword',
+            order: 100,
+          }, WakewordButton));
+          if (pending && typeof pending.catch === 'function') {
+            pending.catch((error) => console.error('dsh-wakeword: slot injection failed', error));
+          }
+        } catch (error) {
+          console.error('dsh-wakeword: could not register the composer control', error);
+        }
       },
     };
   },
