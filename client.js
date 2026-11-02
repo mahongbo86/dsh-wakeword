@@ -7,6 +7,21 @@ window.__ModuleLoader__.load({
     const SAMPLE_RATE = 16000;
     const FRAME_SAMPLES = 1600; // 100 ms
 
+    // ------------------------------------------------------------- endpoints
+
+    // Desktop serves the page from dsh-app://app, so a same-origin URL never
+    // reaches the Host web server. __DSH_TRANSPORT__.streamBaseUrl names the
+    // real HTTP origin; a plain browser falls back to its own base URI.
+    function hostBase() {
+      const transport = globalThis.__DSH_TRANSPORT__;
+      if (transport && typeof transport.streamBaseUrl === 'string') return transport.streamBaseUrl;
+      return document.baseURI;
+    }
+
+    function endpointUrl(path) {
+      return new URL(path, hostBase());
+    }
+
     // ---------------------------------------------------------------- audio
 
     function encodeWav(samples) {
@@ -155,7 +170,7 @@ window.__ModuleLoader__.load({
       // is right at rest, not only after arming.
       React.useEffect(() => {
         let cancelled = false;
-        fetch('/wakeword/config', { cache: 'no-store' })
+        fetch(endpointUrl('wakeword/config'), { cache: 'no-store' })
           .then((response) => (response.ok ? response.json() : undefined))
           .then((data) => {
             if (cancelled || !data || !Array.isArray(data.wakeWords) || data.wakeWords.length === 0) return;
@@ -316,12 +331,13 @@ window.__ModuleLoader__.load({
           mic.current = new MicCapture(onFrame);
           await mic.current.start();
 
-          const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-          const ws = new WebSocket(`${scheme}://${location.host}/wakeword`);
+          const url = endpointUrl('wakeword');
+          url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+          const ws = new WebSocket(url.href);
           socket.current = ws;
           ws.onopen = () => send(ws, { type: 'hello' });
           ws.onmessage = handleMessage;
-          ws.onerror = () => setMessage('连接语音服务失败');
+          ws.onerror = () => setMessage(`连接语音服务失败（${url.href}）`);
           ws.onclose = () => {
             if (!alive.current) return;
             setPhase('idle');
@@ -361,9 +377,9 @@ window.__ModuleLoader__.load({
               alignItems: 'center',
               gap: 6,
               padding: '4px 8px',
-              border: '1px solid var(--dsw-alias-border-l2, #d0d7de)',
+              border: `1px solid ${active ? '#2da44e' : 'rgba(140,149,159,0.45)'}`,
               borderRadius: 8,
-              background: active ? 'var(--dsw-alias-bg-accent, #eef5ff)' : 'transparent',
+              background: 'transparent',
               color: 'inherit',
               cursor: 'pointer',
               fontSize: 12,
