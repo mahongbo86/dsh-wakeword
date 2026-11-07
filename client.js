@@ -164,6 +164,8 @@ window.__ModuleLoader__.load({
       const sendWords = React.useRef([]);
       const confirmTimer = React.useRef(null);
       const autoTried = React.useRef(false);
+      const stopping = React.useRef(false);
+      const reconnectTimer = React.useRef(null);
       // One context created inside the click that arms the control: a context
       // made later, when a keyword fires, is outside the user gesture and may
       // stay suspended (so the cue stays silent).
@@ -317,7 +319,7 @@ window.__ModuleLoader__.load({
               send(socket.current, { type: 'mode', value: 'confirm' });
               mode.current = 'confirm';
               setPhase('confirming');
-              setMessage('已插入。说「发送」提交，或「不用了」取消');
+              setMessage('已插入。说「发送」或「发送吧」提交，说「不用了」取消');
               clearTimeout(confirmTimer.current);
               confirmTimer.current = setTimeout(() => {
                 if (!alive.current || mode.current !== 'confirm') return;
@@ -325,7 +327,7 @@ window.__ModuleLoader__.load({
                 mode.current = 'wake';
                 setPhase('listening');
                 setMessage('');
-              }, 6000);
+              }, 8000);
             } else {
               setMessage('');
             }
@@ -403,6 +405,9 @@ window.__ModuleLoader__.load({
       }
 
       async function start() {
+        if (socket.current || mic.current) return;
+        stopping.current = false;
+        clearTimeout(reconnectTimer.current);
         setMessage('');
         setPhase('starting');
         try {
@@ -423,9 +428,15 @@ window.__ModuleLoader__.load({
           ws.onmessage = handleMessage;
           ws.onerror = () => setMessage(`连接语音服务失败（${url.href}）`);
           ws.onclose = () => {
-            if (!alive.current) return;
-            setPhase('idle');
+            if (!alive.current || stopping.current) return;
+            // A Host reload (HMR, profile patch edit) closes this socket while
+            // the page stays alive; reconnect instead of going idle forever.
+            setPhase('starting');
             teardown();
+            clearTimeout(reconnectTimer.current);
+            reconnectTimer.current = setTimeout(() => {
+              if (alive.current && !stopping.current && socket.current === null) start();
+            }, 1200);
           };
         } catch (error) {
           teardown();
@@ -437,6 +448,8 @@ window.__ModuleLoader__.load({
       function toggle() {
         if (phase === 'idle') start();
         else {
+          stopping.current = true;
+          clearTimeout(reconnectTimer.current);
           teardown();
           setPhase('idle');
         }
