@@ -163,6 +163,7 @@ window.__ModuleLoader__.load({
       const alive = React.useRef(true);
       const sendWords = React.useRef([]);
       const confirmTimer = React.useRef(null);
+      const autoTried = React.useRef(false);
       // One context created inside the click that arms the control: a context
       // made later, when a keyword fires, is outside the user gesture and may
       // stay suspended (so the cue stays silent).
@@ -174,14 +175,22 @@ window.__ModuleLoader__.load({
       }, []);
 
       // Read the configured wake word before the first connection so the label
-      // is right at rest, not only after arming.
+      // is right at rest, not only after arming. When the profile asks for it,
+      // this is also where the control arms itself.
       React.useEffect(() => {
         let cancelled = false;
         fetch(endpointUrl('wakeword/config'), { cache: 'no-store' })
           .then((response) => (response.ok ? response.json() : undefined))
           .then((data) => {
-            if (cancelled || !data || !Array.isArray(data.wakeWords) || data.wakeWords.length === 0) return;
-            setWakeWord(String(data.wakeWords[0]));
+            if (cancelled || !data) return;
+            if (Array.isArray(data.send)) sendWords.current = data.send;
+            if (Array.isArray(data.wakeWords) && data.wakeWords.length > 0) {
+              setWakeWord(String(data.wakeWords[0]));
+            }
+            if (data.autoStart !== false && !autoTried.current) {
+              autoTried.current = true;
+              start();
+            }
           })
           .catch(() => {});
         return () => {

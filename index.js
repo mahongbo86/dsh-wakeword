@@ -96,6 +96,8 @@ export function apply(ctx, rawConfig) {
           wakeWords: config.keywords.wake,
           stop: config.keywords.stop,
           cancel: config.keywords.cancel,
+          send: config.keywords.send,
+          autoStart: config.autoStart,
         }))
       },
     })

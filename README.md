@@ -71,6 +71,7 @@ getUserMedia → AudioContext 16k
     path: /wakeword
     threshold: 0.25
     numThreads: 1
+    autoStart: true      # 页面加载即开启监听；false 则每次手动点
     keywords:
       wake: [嘿小助手]
       stop: [说完了]
