@@ -440,44 +440,64 @@ window.__ModuleLoader__.load({
           ? '说「发送」'
           : phase === 'transcribing'
             ? '转写中'
-            : wakeWord;
+            : active
+              ? `监听「${wakeWord}」`
+              : '开启语音唤醒';
+
+      const accent = phase === 'recording'
+        ? '#d29922'
+        : phase === 'confirming'
+          ? '#1f6feb'
+          : phase === 'transcribing'
+            ? '#8c959f'
+            : active
+              ? '#2da44e'
+              : 'currentColor';
+
+      const icon = phase === 'confirming'
+        ? h('path', { d: 'M1.7 8.1 14 2.4 8.6 14.2l-1.7-4.4-5.2-1.7Z', fill: 'currentColor' })
+        : h(
+            'g',
+            null,
+            h('rect', { x: 6, y: 1.5, width: 4, height: 7.5, rx: 2, fill: 'currentColor' }),
+            h('path', {
+              d: 'M3.6 7.3a4.4 4.4 0 0 0 8.8 0M8 11.7v2.6',
+              fill: 'none',
+              stroke: 'currentColor',
+              strokeWidth: 1.3,
+              strokeLinecap: 'round',
+            }),
+          );
 
       return h(
-        'div',
-        { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-        h(
-          'button',
-          {
-            type: 'button',
-            onClick: toggle,
-            title: active ? '关闭语音唤醒' : '开启语音唤醒',
-            'aria-label': label,
-            'aria-pressed': active,
-            style: {
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '4px 8px',
-              border: `1px solid ${active ? '#2da44e' : 'rgba(140,149,159,0.45)'}`,
-              borderRadius: 8,
-              background: 'transparent',
-              color: 'inherit',
-              cursor: 'pointer',
-              fontSize: 12,
-            },
+        'button',
+        {
+          type: 'button',
+          onClick: toggle,
+          title: message ? `${label} · ${message}` : label,
+          'aria-label': label,
+          'aria-pressed': active,
+          style: {
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 26,
+            height: 26,
+            padding: 0,
+            border: `1px solid ${active ? accent : 'rgba(140,149,159,0.45)'}`,
+            borderRadius: 8,
+            background: 'transparent',
+            color: accent,
+            cursor: 'pointer',
           },
-          h('span', {
-            'aria-hidden': true,
-            style: {
-              width: 8,
-              height: 8,
-              borderRadius: 999,
-              background: phase === 'recording' ? '#d29922' : active ? '#2da44e' : '#8c959f',
-            },
-          }),
-          label,
-        ),
-        message ? h('span', { style: { fontSize: 12, opacity: 0.7 } }, message) : null,
+        },
+        h('svg', {
+          viewBox: '0 0 16 16',
+          width: 16,
+          height: 16,
+          'aria-hidden': true,
+          style: { display: 'block' },
+        }, icon),
       );
     }
 
