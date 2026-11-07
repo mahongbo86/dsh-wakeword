@@ -419,7 +419,7 @@ window.__ModuleLoader__.load({
           url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
           const ws = new WebSocket(url.href);
           socket.current = ws;
-          ws.onopen = () => send(ws, { type: 'hello' });
+          ws.onopen = () => send(ws, { type: 'hello', client: 'ui' });
           ws.onmessage = handleMessage;
           ws.onerror = () => setMessage(`连接语音服务失败（${url.href}）`);
           ws.onclose = () => {
