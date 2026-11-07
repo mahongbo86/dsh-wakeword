@@ -57,8 +57,8 @@ export function apply(ctx, rawConfig) {
     const dictateFile = path.join(cacheDir, 'dictate.txt')
     const confirmFile = path.join(cacheDir, 'confirm.txt')
     writeKeywordsFile(wakeFile, config.keywords.wake, tokens)
-    writeKeywordsFile(dictateFile, [...config.keywords.stop, ...config.keywords.cancel], tokens)
-    writeKeywordsFile(confirmFile, [...config.keywords.send, ...config.keywords.cancel], tokens)
+    writeKeywordsFile(dictateFile, [...config.keywords.wake, ...config.keywords.stop, ...config.keywords.cancel], tokens)
+    writeKeywordsFile(confirmFile, [...config.keywords.wake, ...config.keywords.send, ...config.keywords.cancel], tokens)
 
     const stats = {}
     const bridge = createBridge({

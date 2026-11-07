@@ -365,6 +365,7 @@ window.__ModuleLoader__.load({
 
         if (message.kind === 'wake') {
           ding(880, 0.12);
+          clearTimeout(confirmTimer.current);
           mode.current = 'dictate';
           resetTake();
           recording.current = true;
